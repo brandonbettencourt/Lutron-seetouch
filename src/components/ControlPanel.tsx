@@ -1,13 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   AlignCenter,
   AlignLeft,
   AlignRight,
   Grid2x2,
+  ImagePlus,
   LampCeiling,
   Palette,
   PanelRightClose,
   Type,
+  X,
 } from 'lucide-react';
 import {
   KEYPAD_CONFIGURATIONS,
@@ -23,7 +25,12 @@ import {
   getFinishById,
   type FinishCategory,
 } from '../data/colors';
-import type { MockupState, TextAlignment, TextCasing } from '../types';
+import type {
+  MockupState,
+  TextAlignment,
+  TextCasing,
+  WallpaperRepeatMode,
+} from '../types';
 import { KeypadSchematic } from './KeypadSchematic';
 
 type InspectorTab = 'layout' | 'finish' | 'labels' | 'studio';
@@ -44,6 +51,10 @@ interface ControlPanelProps {
   onChangeBacklight: (val: number) => void;
   onSelectWallPreset: (presetId: string, color: string) => void;
   onChangeWallColor: (color: string) => void;
+  onUploadWallpaper: (file: File) => void;
+  onClearWallpaper: () => void;
+  onChangeWallpaperScale: (repeatWidthInches: number) => void;
+  onChangeWallpaperRepeatMode: (mode: WallpaperRepeatMode) => void;
 }
 
 export function ControlPanel({
@@ -62,8 +73,15 @@ export function ControlPanel({
   onChangeBacklight,
   onSelectWallPreset,
   onChangeWallColor,
+  onUploadWallpaper,
+  onClearWallpaper,
+  onChangeWallpaperScale,
+  onChangeWallpaperRepeatMode,
 }: ControlPanelProps) {
   const [activeTab, setActiveTab] = useState<InspectorTab>('layout');
+  const [isDraggingWallpaper, setIsDraggingWallpaper] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const currentFinish = getFinishById(state.finishId);
   const currentConfig = getConfiguration(state.configCode);
 
@@ -71,19 +89,14 @@ export function ControlPanel({
     currentFinish.category
   );
 
-  // Keep category synced if finish changes externally (e.g. style switch or URL load)
-  const effectiveCategory = useMemo(() => {
-    return selectedCategory;
-  }, [selectedCategory]);
-
   const finishesInCategory = useMemo(
-    () => LUTRON_FINISHES.filter((f) => f.category === effectiveCategory),
-    [effectiveCategory]
+    () => LUTRON_FINISHES.filter((f) => f.category === selectedCategory),
+    [selectedCategory]
   );
 
-  const categoryMeta = FINISH_CATEGORIES.find(
-    (c) => c.id === effectiveCategory
-  )!;
+  const categoryMeta =
+    FINISH_CATEGORIES.find((c) => c.id === selectedCategory) ??
+    FINISH_CATEGORIES[1];
 
   const mainSlots = useMemo(
     () => currentConfig.slots.filter((s) => !s.isRaiseLower),
@@ -93,20 +106,23 @@ export function ControlPanel({
   const handleStyleSelect = (nextStyle: KeypadStyle) => {
     onChangeStyle(nextStyle);
     if (nextStyle === 'architectural') {
-      if (
-        effectiveCategory === 'gloss' ||
-        effectiveCategory === 'satin-core' ||
-        effectiveCategory === 'satin-classic' ||
-        effectiveCategory === 'satin-new'
-      ) {
+      if (selectedCategory === 'gloss' || selectedCategory === 'satin') {
         setSelectedCategory('arch-matte');
       }
-    } else {
-      if (effectiveCategory === 'arch-matte') {
-        setSelectedCategory('satin-core');
-      }
+    } else if (selectedCategory === 'arch-matte') {
+      setSelectedCategory('satin');
     }
   };
+
+  const handleFileSelected = (file: File | undefined | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    onUploadWallpaper(file);
+  };
+
+  const wallpaperScalePercent = Math.round(
+    ((state.wallpaper.repeatWidthInches - 2) / (36 - 2)) * 100
+  );
 
   return (
     <aside
@@ -246,13 +262,13 @@ export function ControlPanel({
         )}
 
         {/* ===============================================================
-            TAB 2: FINISHES & OFFICIAL LUTRON COLORS
+            TAB 2: FINISHES & OFFICIAL LUTRON SEETOUCH COLORS
            =============================================================== */}
         {activeTab === 'finish' && (
           <>
             <section className="control-section">
               <div className="section-header">
-                <span className="section-label">Finish Collection</span>
+                <span className="section-label">seeTouch Finish Collection</span>
               </div>
               <div className="category-pills" role="group" aria-label="Finish families">
                 {FINISH_CATEGORIES.map((cat) => (
@@ -261,7 +277,7 @@ export function ControlPanel({
                     key={cat.id}
                     id={`cat-${cat.id}`}
                     className="cat-pill"
-                    aria-pressed={effectiveCategory === cat.id}
+                    aria-pressed={selectedCategory === cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
                   >
                     {cat.shortLabel}
@@ -273,7 +289,7 @@ export function ControlPanel({
             <section className="control-section">
               <div className="section-header">
                 <span className="section-label">{categoryMeta.label}</span>
-                <span className="section-sub">{finishesInCategory.length}</span>
+                <span className="section-sub">{finishesInCategory.length} available</span>
               </div>
 
               <div className="swatch-grid">
@@ -302,6 +318,15 @@ export function ControlPanel({
                   );
                 })}
               </div>
+
+              {selectedCategory === 'satin' && (
+                <div className="config-note">
+                  <strong>seeTouch Satin Availability:</strong> Per Lutron spec
+                  (P/N 367-2918), seeTouch keypads are offered in these{' '}
+                  <strong>6 Satin finishes</strong>. The expanded 20-color Satin
+                  palette applies to Sunnata and Diva controls.
+                </div>
+              )}
 
               {currentFinish.pairedButton && (
                 <div className="config-note">
@@ -450,7 +475,7 @@ export function ControlPanel({
         )}
 
         {/* ===============================================================
-            TAB 4: STUDIO LIGHTING & WALL SURFACE
+            TAB 4: STUDIO LIGHTING, WALL BACKDROP & CUSTOM WALLPAPER
            =============================================================== */}
         {activeTab === 'studio' && (
           <>
@@ -521,14 +546,151 @@ export function ControlPanel({
               </div>
             </section>
 
+            {/* Custom Wallpaper Uploader */}
             <section className="control-section">
               <div className="section-header">
-                <span className="section-label">Wall Backdrop</span>
+                <span className="section-label">Custom Wallpaper</span>
+                <span className="section-sub">Repeating print</span>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                id="wallpaper-upload-input"
+                type="file"
+                accept="image/*"
+                className="visually-hidden"
+                onChange={(e) => {
+                  handleFileSelected(e.target.files?.[0]);
+                  e.target.value = '';
+                }}
+              />
+
+              {!state.wallpaper.imageUrl ? (
+                <label
+                  htmlFor="wallpaper-upload-input"
+                  className={`wallpaper-dropzone${isDraggingWallpaper ? ' is-dragging' : ''}`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDraggingWallpaper(true);
+                  }}
+                  onDragLeave={() => setIsDraggingWallpaper(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDraggingWallpaper(false);
+                    handleFileSelected(e.dataTransfer.files?.[0]);
+                  }}
+                >
+                  <ImagePlus size={18} />
+                  <span className="wallpaper-drop-title">
+                    Upload wallpaper image
+                  </span>
+                  <span className="wallpaper-drop-sub">
+                    Drop PNG, JPG, or WebP swatch — tiles automatically
+                  </span>
+                </label>
+              ) : (
+                <div className="wallpaper-active-card">
+                  <div className="wallpaper-preview-row">
+                    <img
+                      src={state.wallpaper.imageUrl}
+                      alt="Uploaded wallpaper preview"
+                      className="wallpaper-thumb"
+                    />
+                    <div className="wallpaper-meta">
+                      <span className="wallpaper-filename">
+                        {state.wallpaper.fileName || 'Custom Wallpaper'}
+                      </span>
+                      <div className="wallpaper-actions">
+                        <button
+                          type="button"
+                          className="wallpaper-link-btn"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          Replace
+                        </button>
+                        <button
+                          type="button"
+                          id="clear-wallpaper-btn"
+                          className="wallpaper-link-btn wallpaper-link-btn--danger"
+                          onClick={onClearWallpaper}
+                          aria-label="Remove custom wallpaper"
+                        >
+                          <X size={12} />
+                          <span>Remove</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="slider-field">
+                    <div className="slider-row">
+                      <label htmlFor="wallpaper-scale-slider">
+                        Print Repeat Width
+                      </label>
+                      <span className="slider-val">
+                        {state.wallpaper.repeatWidthInches.toFixed(1)}&quot;
+                      </span>
+                    </div>
+                    <input
+                      id="wallpaper-scale-slider"
+                      type="range"
+                      min={2}
+                      max={36}
+                      step={0.5}
+                      value={state.wallpaper.repeatWidthInches}
+                      className="studio-range"
+                      style={
+                        {
+                          '--progress': `${wallpaperScalePercent}%`,
+                        } as React.CSSProperties
+                      }
+                      onChange={(e) =>
+                        onChangeWallpaperScale(Number(e.target.value))
+                      }
+                    />
+                    <span className="slider-hint">
+                      True-to-scale vs. {state.style === 'designer' ? '4.69"' : '4.56"'} wallplate height
+                    </span>
+                  </div>
+
+                  <div
+                    className="segmented-control"
+                    role="group"
+                    aria-label="Wallpaper repeat mode"
+                  >
+                    <button
+                      type="button"
+                      id="wp-mode-tile"
+                      className="seg-btn"
+                      aria-pressed={state.wallpaper.repeatMode === 'tile'}
+                      onClick={() => onChangeWallpaperRepeatMode('tile')}
+                    >
+                      <span>Standard Tile</span>
+                    </button>
+                    <button
+                      type="button"
+                      id="wp-mode-mirror"
+                      className="seg-btn"
+                      aria-pressed={state.wallpaper.repeatMode === 'mirror'}
+                      onClick={() => onChangeWallpaperRepeatMode('mirror')}
+                    >
+                      <span>Mirror Seamless</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Built-in Architectural Wall Presets */}
+            <section className="control-section">
+              <div className="section-header">
+                <span className="section-label">Wall Surfaces &amp; Paint</span>
               </div>
 
               <div className="wall-grid">
                 {WALL_PRESETS.map((wp) => {
-                  const isActive = state.wallPresetId === wp.id;
+                  const isActive =
+                    !state.wallpaper.imageUrl && state.wallPresetId === wp.id;
                   return (
                     <button
                       type="button"

@@ -23,6 +23,7 @@ import {
   type MockupState,
   type TextAlignment,
   type TextCasing,
+  type WallpaperRepeatMode,
 } from './types';
 
 function createInitialState(): MockupState {
@@ -41,6 +42,13 @@ function createInitialState(): MockupState {
     dimmerLevel: 75,
     wallPresetId: 'gallery-white',
     wallColor: '#e5e2da',
+    wallpaper: {
+      imageUrl: null,
+      fileName: '',
+      repeatWidthInches: 12,
+      repeatMode: 'tile',
+      naturalAspect: 1,
+    },
   };
   return decodeStateFromHash(window.location.hash, fallback);
 }
@@ -224,6 +232,58 @@ export default function App() {
     }
   };
 
+  const wallpaperUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (wallpaperUrlRef.current) {
+        URL.revokeObjectURL(wallpaperUrlRef.current);
+      }
+    };
+  }, []);
+
+  const handleUploadWallpaper = (file: File) => {
+    if (wallpaperUrlRef.current) {
+      URL.revokeObjectURL(wallpaperUrlRef.current);
+    }
+    const objectUrl = URL.createObjectURL(file);
+    wallpaperUrlRef.current = objectUrl;
+
+    const img = new Image();
+    img.onload = () => {
+      const aspect =
+        img.naturalWidth > 0 && img.naturalHeight > 0
+          ? img.naturalWidth / img.naturalHeight
+          : 1;
+      setState((prev) => ({
+        ...prev,
+        wallpaper: {
+          ...prev.wallpaper,
+          imageUrl: objectUrl,
+          fileName: file.name,
+          naturalAspect: aspect,
+        },
+      }));
+      showToast(`Applied wallpaper: ${file.name}`);
+    };
+    img.src = objectUrl;
+  };
+
+  const handleClearWallpaper = () => {
+    if (wallpaperUrlRef.current) {
+      URL.revokeObjectURL(wallpaperUrlRef.current);
+      wallpaperUrlRef.current = null;
+    }
+    setState((prev) => ({
+      ...prev,
+      wallpaper: {
+        ...prev.wallpaper,
+        imageUrl: null,
+        fileName: '',
+      },
+    }));
+  };
+
   const handleExportPng = () => {
     if (!sceneRef.current) return;
     const dataUrl = sceneRef.current.exportSnapshotPng();
@@ -399,11 +459,36 @@ export default function App() {
         onChangeBacklight={(backlight) =>
           setState((p) => ({ ...p, backlight }))
         }
-        onSelectWallPreset={(wallPresetId, wallColor) =>
-          setState((p) => ({ ...p, wallPresetId, wallColor }))
+        onSelectWallPreset={(wallPresetId, wallColor) => {
+          handleClearWallpaper();
+          setState((p) => ({
+            ...p,
+            wallPresetId,
+            wallColor,
+            wallpaper: { ...p.wallpaper, imageUrl: null, fileName: '' },
+          }));
+        }}
+        onChangeWallColor={(wallColor) => {
+          handleClearWallpaper();
+          setState((p) => ({
+            ...p,
+            wallColor,
+            wallpaper: { ...p.wallpaper, imageUrl: null, fileName: '' },
+          }));
+        }}
+        onUploadWallpaper={handleUploadWallpaper}
+        onClearWallpaper={handleClearWallpaper}
+        onChangeWallpaperScale={(repeatWidthInches) =>
+          setState((p) => ({
+            ...p,
+            wallpaper: { ...p.wallpaper, repeatWidthInches },
+          }))
         }
-        onChangeWallColor={(wallColor) =>
-          setState((p) => ({ ...p, wallColor }))
+        onChangeWallpaperRepeatMode={(repeatMode: WallpaperRepeatMode) =>
+          setState((p) => ({
+            ...p,
+            wallpaper: { ...p.wallpaper, repeatMode },
+          }))
         }
       />
     </div>

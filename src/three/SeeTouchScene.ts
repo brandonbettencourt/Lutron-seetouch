@@ -33,7 +33,10 @@ import {
   formatEngravingText,
   type CameraPresetId,
   type MockupState,
+  type WallpaperState,
 } from '../types';
+
+const WALL_SIZE_MM = 780;
 
 interface InteractiveButtonHandle {
   kind: 'main' | 'raise' | 'lower';
@@ -85,6 +88,9 @@ export class SeeTouchScene {
   private wallMesh: THREE.Mesh;
   private wallMaterial: THREE.MeshStandardMaterial;
   private wallTextures: { map: THREE.CanvasTexture; bumpMap: THREE.CanvasTexture } | null = null;
+  private wallpaperTexture: THREE.Texture | null = null;
+  private loadedWallpaperUrl: string | null = null;
+  private wallpaperLoadToken = 0;
 
   private keypadRoot: THREE.Group;
   private interactiveButtons: InteractiveButtonHandle[] = [];
@@ -249,10 +255,17 @@ export class SeeTouchScene {
 
     const structureKey = `${state.style}|${state.configCode}|${state.finishId}`;
     const engravingKey = `${structureKey}|${state.labels.join('\u0001')}|${state.textAlignment}|${state.textCasing}`;
-    const wallKey = `${state.wallPresetId}|${state.wallColor}`;
+    const wallKey = state.wallpaper.imageUrl
+      ? `wp|${state.wallpaper.imageUrl}|${state.wallpaper.repeatWidthInches}|${state.wallpaper.repeatMode}|${state.wallpaper.naturalAspect}`
+      : `preset|${state.wallPresetId}|${state.wallColor}`;
 
     if (wallKey !== this.lastWallKey) {
-      this.updateWall(state.wallPresetId, state.wallColor);
+      if (state.wallpaper.imageUrl) {
+        this.updateWallpaper(state.wallpaper);
+      } else {
+        this.clearWallpaperTexture();
+        this.updateWall(state.wallPresetId, state.wallColor);
+      }
       this.lastWallKey = wallKey;
     }
 
@@ -295,6 +308,95 @@ export class SeeTouchScene {
   public exportSnapshotPng(): string {
     this.renderer.render(this.scene, this.camera);
     return this.renderer.domElement.toDataURL('image/png', 1.0);
+  }
+
+  private clearWallpaperTexture(): void {
+    this.wallpaperLoadToken++;
+    if (this.wallpaperTexture) {
+      this.wallpaperTexture.dispose();
+      this.wallpaperTexture = null;
+    }
+    this.loadedWallpaperUrl = null;
+  }
+
+  private applyWallpaperTransform(
+    tex: THREE.Texture,
+    wallpaper: WallpaperState
+  ): void {
+    const wrap =
+      wallpaper.repeatMode === 'mirror'
+        ? THREE.MirroredRepeatWrapping
+        : THREE.RepeatWrapping;
+    tex.wrapS = wrap;
+    tex.wrapT = wrap;
+
+    // Exact physical scaling: our wall plane is WALL_SIZE_MM (780mm ≈ 30.71 in).
+    // repeatWidthInches defines how wide one full horizontal tile of the print is in real life.
+    const repeatWidthMm = Math.max(25.4, wallpaper.repeatWidthInches * 25.4);
+    const repeatX = WALL_SIZE_MM / repeatWidthMm;
+    const aspect = wallpaper.naturalAspect > 0 ? wallpaper.naturalAspect : 1;
+    const repeatY = repeatX * aspect;
+
+    tex.repeat.set(repeatX, repeatY);
+    // Keep pattern centered behind the keypad as user scales print size
+    tex.offset.set(0.5 - repeatX / 2, 0.5 - repeatY / 2);
+    tex.needsUpdate = true;
+  }
+
+  private updateWallpaper(wallpaper: WallpaperState): void {
+    const url = wallpaper.imageUrl;
+    if (!url) return;
+
+    // Fast path: same uploaded image already loaded — update repeat/scale in-place at 60fps
+    if (this.wallpaperTexture && this.loadedWallpaperUrl === url) {
+      this.applyWallpaperTransform(this.wallpaperTexture, wallpaper);
+      this.wallMaterial.map = this.wallpaperTexture;
+      this.wallMaterial.bumpMap = this.matteGrainTex;
+      this.wallMaterial.bumpScale = 0.08;
+      this.wallMaterial.color.set(0xffffff);
+      this.wallMaterial.roughness = 0.87;
+      this.wallMaterial.needsUpdate = true;
+      this.needsRender = true;
+      return;
+    }
+
+    const token = ++this.wallpaperLoadToken;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      if (token !== this.wallpaperLoadToken) return;
+      if (this.wallpaperTexture) {
+        this.wallpaperTexture.dispose();
+      }
+      const tex = new THREE.Texture(img);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
+      tex.generateMipmaps = true;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+
+      const resolvedAspect =
+        img.naturalWidth > 0 && img.naturalHeight > 0
+          ? img.naturalWidth / img.naturalHeight
+          : wallpaper.naturalAspect;
+
+      this.applyWallpaperTransform(tex, {
+        ...wallpaper,
+        naturalAspect: resolvedAspect,
+      });
+
+      this.wallpaperTexture = tex;
+      this.loadedWallpaperUrl = url;
+
+      this.wallMaterial.map = tex;
+      this.wallMaterial.bumpMap = this.matteGrainTex;
+      this.wallMaterial.bumpScale = 0.08;
+      this.wallMaterial.color.set(0xffffff);
+      this.wallMaterial.roughness = 0.87;
+      this.wallMaterial.needsUpdate = true;
+      this.needsRender = true;
+    };
+    img.src = url;
   }
 
   private updateWall(presetId: string, colorHex: string): void {
@@ -935,6 +1037,7 @@ export class SeeTouchScene {
     this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove);
 
     this.disposeKeypadGroup();
+    this.clearWallpaperTexture();
     this.wallMesh.geometry.dispose();
     this.wallMaterial.dispose();
     this.wallTextures?.map.dispose();

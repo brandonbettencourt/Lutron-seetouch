@@ -3,6 +3,18 @@ import type { ConfigCode, KeypadStyle } from './data/configurations';
 export type TextAlignment = 'left' | 'center' | 'right';
 export type TextCasing = 'as-typed' | 'title' | 'upper';
 export type CameraPresetId = 'hero' | 'front' | 'side' | 'macro';
+export type WallpaperRepeatMode = 'tile' | 'mirror';
+
+export interface WallpaperState {
+  /** Object URL or data URL of uploaded custom wallpaper image (null = use preset wall) */
+  imageUrl: string | null;
+  fileName: string;
+  /** Real-world horizontal pattern repeat width in inches (2..36 in) */
+  repeatWidthInches: number;
+  repeatMode: WallpaperRepeatMode;
+  /** Natural image aspect ratio (width / height) to preserve exact pattern proportions */
+  naturalAspect: number;
+}
 
 export interface MockupState {
   style: KeypadStyle;
@@ -24,6 +36,8 @@ export interface MockupState {
   wallPresetId: string;
   /** Custom wall color override (hex) */
   wallColor: string;
+  /** Optional custom uploaded wallpaper image & repeat scaling */
+  wallpaper: WallpaperState;
 }
 
 export function formatEngravingText(

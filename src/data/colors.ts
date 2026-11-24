@@ -1,12 +1,6 @@
 import type { KeypadStyle } from './configurations';
 
-export type FinishCategory =
-  | 'gloss'
-  | 'satin-core'
-  | 'satin-classic'
-  | 'satin-new'
-  | 'arch-matte'
-  | 'metal';
+export type FinishCategory = 'gloss' | 'satin' | 'arch-matte' | 'metal';
 
 export type SurfaceType =
   | 'gloss'
@@ -29,7 +23,7 @@ export interface LutronFinish {
   surface: SurfaceType;
   /** Calibrated wallplate base hex color */
   hex: string;
-  /** Optional slightly shifted swatch accent for metallic UI preview */
+  /** Optional metallic gradient for swatch preview */
   swatchGradient?: string;
   /** PBR properties for the wallplate */
   roughness: number;
@@ -37,13 +31,12 @@ export interface LutronFinish {
   clearcoat: number;
   clearcoatRoughness: number;
   /**
-   * True if engraving ink/etching should render light-on-dark (white/silver text),
+   * True if engraving ink/etching renders light-on-dark (white/silver text),
    * false if dark charcoal text on light buttons.
    */
   isDarkButton: boolean;
   /**
-   * For Metal wallplates, Lutron ships Midnight (MN) or Black (BL) polymer keypad buttons/insert.
-   * When defined, the keypad bezel & buttons use this finish instead of metal.
+   * For Metal wallplates, Lutron pairs Midnight (MN) or Matte Black (BL) polymer buttons/insert.
    */
   pairedButton?: {
     code: string;
@@ -63,48 +56,39 @@ export interface FinishCategoryMeta {
   subtitle: string;
 }
 
+/**
+ * Official currently-available Lutron seeTouch® finish families
+ * per Lutron Satin Finishes Matrix (P/N 367-2918) and seeTouch spec sheets
+ * (369324c, 369354f, 369969b, 369353d).
+ */
 export const FINISH_CATEGORIES: FinishCategoryMeta[] = [
   {
     id: 'gloss',
     label: 'Claro® Gloss',
     shortLabel: 'Gloss',
     style: 'designer',
-    subtitle: '7 high-gloss Designer finishes',
+    subtitle: '7 Designer Gloss finishes',
   },
   {
-    id: 'satin-core',
-    label: 'Satin Colors® Core',
-    shortLabel: 'Satin Core',
+    id: 'satin',
+    label: 'Satin Colors®',
+    shortLabel: 'Satin',
     style: 'designer',
-    subtitle: '6 current seeTouch velvet-satin finishes',
-  },
-  {
-    id: 'satin-classic',
-    label: 'Satin Colors® Classic',
-    shortLabel: 'Satin Classic',
-    style: 'designer',
-    subtitle: '12 classic seeTouch Satin Colors',
-  },
-  {
-    id: 'satin-new',
-    label: 'New Satin Finishes',
-    shortLabel: 'New Satin',
-    style: 'designer',
-    subtitle: '16 expanded Designer Satin tones',
+    subtitle: '6 official seeTouch Satin finishes',
   },
   {
     id: 'arch-matte',
     label: 'Architectural Matte',
     shortLabel: 'Arch. Matte',
     style: 'architectural',
-    subtitle: '10 Nova T*® Architectural Matte colors',
+    subtitle: '10 Nova T*® Matte finishes',
   },
   {
     id: 'metal',
     label: 'Metal Wallplates',
     shortLabel: 'Metals',
     style: 'architectural',
-    subtitle: 'Stainless Steel & 12 Architectural Metals',
+    subtitle: 'Stainless Steel + 12 Architectural Metals',
   },
 ];
 
@@ -128,7 +112,7 @@ const PAIRED_ARCH_BLACK = {
 
 export const LUTRON_FINISHES: LutronFinish[] = [
   // =========================================================================
-  // 1. CLARO GLOSS FINISHES (7) — Designer Style
+  // 1. CLARO GLOSS FINISHES (7) — Designer Style (Spec 369324c / 369354f)
   // =========================================================================
   {
     id: 'gloss-WH',
@@ -230,13 +214,16 @@ export const LUTRON_FINISHES: LutronFinish[] = [
   },
 
   // =========================================================================
-  // 2. SATIN COLORS CORE (6) — Current 2023+ seeTouch Spec Sheet
+  // 2. SATIN COLORS (6) — Official Current seeTouch Satin Finishes
+  //    (Lutron P/N 367-2918 & Spec 369324c / 369354f / 369969b)
+  //    Note: Expanded 20-color "New Satin Finishes" apply to Sunnata/Diva,
+  //    while seeTouch supports these 6 Satin finishes.
   // =========================================================================
   {
     id: 'satin-SW',
     code: 'SW',
     name: 'Snow',
-    category: 'satin-core',
+    category: 'satin',
     style: 'designer',
     surface: 'satin',
     hex: '#f0efeb',
@@ -250,7 +237,7 @@ export const LUTRON_FINISHES: LutronFinish[] = [
     id: 'satin-BI',
     code: 'BI',
     name: 'Biscuit',
-    category: 'satin-core',
+    category: 'satin',
     style: 'designer',
     surface: 'satin',
     hex: '#e4dac9',
@@ -264,7 +251,7 @@ export const LUTRON_FINISHES: LutronFinish[] = [
     id: 'satin-TP',
     code: 'TP',
     name: 'Taupe',
-    category: 'satin-core',
+    category: 'satin',
     style: 'designer',
     surface: 'satin',
     hex: '#afa495',
@@ -278,7 +265,7 @@ export const LUTRON_FINISHES: LutronFinish[] = [
     id: 'satin-PD',
     code: 'PD',
     name: 'Palladium',
-    category: 'satin-core',
+    category: 'satin',
     style: 'designer',
     surface: 'satin',
     hex: '#b9b8b4',
@@ -292,7 +279,7 @@ export const LUTRON_FINISHES: LutronFinish[] = [
     id: 'satin-MN',
     code: 'MN',
     name: 'Midnight',
-    category: 'satin-core',
+    category: 'satin',
     style: 'designer',
     surface: 'satin',
     hex: '#1c1d20',
@@ -306,7 +293,7 @@ export const LUTRON_FINISHES: LutronFinish[] = [
     id: 'satin-HT',
     code: 'HT',
     name: 'Hot',
-    category: 'satin-core',
+    category: 'satin',
     style: 'designer',
     surface: 'satin',
     hex: '#9c2529',
@@ -318,407 +305,7 @@ export const LUTRON_FINISHES: LutronFinish[] = [
   },
 
   // =========================================================================
-  // 3. SATIN COLORS CLASSIC (12) — Extended RadioRA 2 / seeTouch Palette
-  // =========================================================================
-  {
-    id: 'satin-ES',
-    code: 'ES',
-    name: 'Eggshell',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#eae3d4',
-    roughness: 0.48,
-    metalness: 0.0,
-    clearcoat: 0.06,
-    clearcoatRoughness: 0.5,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-LS',
-    code: 'LS',
-    name: 'Limestone',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#c8c3b8',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-ST',
-    code: 'ST',
-    name: 'Stone',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#a7a299',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-DS',
-    code: 'DS',
-    name: 'Desert Stone',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#c8bba7',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-GS',
-    code: 'GS',
-    name: 'Goldstone',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#c3aa82',
-    roughness: 0.48,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-MS',
-    code: 'MS',
-    name: 'Mocha Stone',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#6d6055',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-BG',
-    code: 'BG',
-    name: 'Bluestone',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#6f7e8a',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-GB',
-    code: 'GB',
-    name: 'Greenbriar',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#4f5d52',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-SI',
-    code: 'SI',
-    name: 'Sienna',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#573b30',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-TC',
-    code: 'TC',
-    name: 'Terracotta',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#8f4c3d',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-PL',
-    code: 'PL',
-    name: 'Plum',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#513748',
-    roughness: 0.48,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-MR',
-    code: 'MR',
-    name: 'Merlot',
-    category: 'satin-classic',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#5c2631',
-    roughness: 0.48,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-
-  // =========================================================================
-  // 4. NEW LUTRON SATIN FINISHES (16) — Expanded Designer Satin Palette
-  // =========================================================================
-  {
-    id: 'satin-BW',
-    code: 'BW',
-    name: 'Brilliant White',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#f5f6f4',
-    roughness: 0.47,
-    metalness: 0.0,
-    clearcoat: 0.06,
-    clearcoatRoughness: 0.5,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-GL',
-    code: 'GL',
-    name: 'Glacier White',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#eceef0',
-    roughness: 0.47,
-    metalness: 0.0,
-    clearcoat: 0.06,
-    clearcoatRoughness: 0.5,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-RW',
-    code: 'RW',
-    name: 'Architectural White',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#ece9e1',
-    roughness: 0.48,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-LG',
-    code: 'LG',
-    name: 'Lunar Gray',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#d2d4d5',
-    roughness: 0.48,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-MI',
-    code: 'MI',
-    name: 'Mist',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#b6b9bb',
-    roughness: 0.48,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-PB',
-    code: 'PB',
-    name: 'Pebble',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#97999b',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-CS',
-    code: 'CS',
-    name: 'Cobblestone',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#6d7074',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-SL',
-    code: 'SL',
-    name: 'Slate',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#464a4f',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-SD',
-    code: 'SD',
-    name: 'Sand',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#d2c5b1',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-PM',
-    code: 'PM',
-    name: 'Pumice',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#9b9187',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: false,
-  },
-  {
-    id: 'satin-CY',
-    code: 'CY',
-    name: 'Clay',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#947463',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-SA',
-    code: 'SA',
-    name: 'Sage',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#849082',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-EP',
-    code: 'EP',
-    name: 'Espresso',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#3b2e28',
-    roughness: 0.48,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.5,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-TF',
-    code: 'TF',
-    name: 'Truffle',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#574a42',
-    roughness: 0.49,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.52,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-DE',
-    code: 'DE',
-    name: 'Deep Sea',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#283d4a',
-    roughness: 0.48,
-    metalness: 0.0,
-    clearcoat: 0.05,
-    clearcoatRoughness: 0.5,
-    isDarkButton: true,
-  },
-  {
-    id: 'satin-SR',
-    code: 'SR',
-    name: 'Signal Red',
-    category: 'satin-new',
-    style: 'designer',
-    surface: 'satin',
-    hex: '#a52626',
-    roughness: 0.47,
-    metalness: 0.0,
-    clearcoat: 0.06,
-    clearcoatRoughness: 0.48,
-    isDarkButton: true,
-  },
-
-  // =========================================================================
-  // 5. ARCHITECTURAL MATTE FINISHES (10) — Nova T* Architectural Style
+  // 3. ARCHITECTURAL MATTE FINISHES (10) — Nova T* Architectural Style (369353d)
   // =========================================================================
   {
     id: 'arch-WH',
@@ -862,7 +449,7 @@ export const LUTRON_FINISHES: LutronFinish[] = [
   },
 
   // =========================================================================
-  // 6. METAL WALLPLATES (1 Designer + 12 Architectural Metals)
+  // 4. METAL WALLPLATES (1 Designer + 12 Architectural Metals)
   // =========================================================================
   {
     id: 'metal-SS',
